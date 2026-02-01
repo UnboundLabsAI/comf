@@ -28,7 +28,8 @@ class SaveVideoFilesS3:
     def save_video_files(self, filenames, filename_prefix="VideoFiles", overwrite_existing=False, random_filename=False):
         filename_prefix += self.prefix_append
         local_files = filenames[1]
-        full_output_folder, filename, counter, _, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix, overwrite=overwrite_existing, random_filename=random_filename)
+        full_output_folder, filename, counter, subfolder, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix, overwrite=overwrite_existing, random_filename=random_filename)
+        s3_urls = list()
         s3_video_paths = list()
         
         for path in local_files:
@@ -42,5 +43,12 @@ class SaveVideoFilesS3:
               
             # Add the s3 path to the s3_image_paths list
             s3_video_paths.append(file_path)
+
+            # Construct full S3 URL
+            endpoint = S3_INSTANCE.endpoint_url.rstrip("/")
+            url = f"{endpoint}/{S3_INSTANCE.bucket_name}/{file_path}"
+            s3_urls.append(url)
+
+            counter += 1
         
-        return (s3_video_paths,)
+        return { "ui": { "s3_paths": s3_urls }, "result": (s3_video_paths,) }
