@@ -13,7 +13,9 @@ class SaveVideoFilesS3:
     def INPUT_TYPES(s):
         return {"required": {
             "filename_prefix": ("STRING", {"default": "VideoFiles"}),
-            "filenames": ("VHS_FILENAMES", )
+            "filenames": ("VHS_FILENAMES", ),
+            "overwrite_existing": ("BOOLEAN", {"default": False}),
+            "random_filename": ("BOOLEAN", {"default": False})
             }}
 
     RETURN_TYPES = ("STRING",)
@@ -23,10 +25,10 @@ class SaveVideoFilesS3:
     OUTPUT_IS_LIST = (True,)
     CATEGORY = "ComfyS3"
 
-    def save_video_files(self, filenames, filename_prefix="VideoFiles"):
+    def save_video_files(self, filenames, filename_prefix="VideoFiles", overwrite_existing=False, random_filename=False):
         filename_prefix += self.prefix_append
         local_files = filenames[1]
-        full_output_folder, filename, counter, _, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix)
+        full_output_folder, filename, counter, _, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix, overwrite=overwrite_existing, random_filename=random_filename)
         s3_video_paths = list()
         
         for path in local_files:
