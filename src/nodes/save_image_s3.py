@@ -23,7 +23,9 @@ class SaveImageS3:
     def INPUT_TYPES(s):
         return {"required": {
             "images": ("IMAGE", ),
-            "filename_prefix": ("STRING", {"default": "Image"})},
+            "filename_prefix": ("STRING", {"default": "Image"}),
+            "overwrite_existing": ("BOOLEAN", {"default": False}),
+            "random_filename": ("BOOLEAN", {"default": False})},
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
             },
                 }
@@ -35,9 +37,9 @@ class SaveImageS3:
     OUTPUT_IS_LIST = (True,)
     CATEGORY = "ComfyS3"
 
-    def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
+    def save_images(self, images, filename_prefix="ComfyUI", overwrite_existing=False, random_filename=False, prompt=None, extra_pnginfo=None):
         filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix, images[0].shape[1], images[0].shape[0])
+        full_output_folder, filename, counter, subfolder, filename_prefix = S3_INSTANCE.get_save_path(filename_prefix, images[0].shape[1], images[0].shape[0], overwrite=overwrite_existing, random_filename=random_filename)
         results = list()
         s3_image_paths = list()
         

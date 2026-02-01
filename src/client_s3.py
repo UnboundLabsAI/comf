@@ -1,5 +1,8 @@
 import os
 import boto3
+import random
+import string
+from datetime import datetime
 from .logger import logger
 from botocore.exceptions import NoCredentialsError
 from botocore.config import Config
@@ -67,9 +70,12 @@ class S3:
     
     def does_folder_exist(self, folder_name):
         try:
-            bucket = self.s3_client.Bucket(self.bucket_name)
-            response = bucket.objects.filter(Prefix=folder_name)
-            return any(obj.key.startswith(folder_name) for obj in response)
+            response = self.s3_client.meta.client.list_objects_v2(
+                Bucket=self.bucket_name,
+                Prefix=folder_name,
+                MaxKeys=1
+            )
+            return 'Contents' in response
         except Exception as e:
             err = f"Failed to check if folder exists in S3: {e}"
             logger.error(err)
@@ -109,7 +115,7 @@ class S3:
             err = f"Failed to upload file to S3: {e}"
             logger.error(err)
     
-    def get_save_path(self, filename_prefix, image_width=0, image_height=0):
+    def get_save_path(self, filename_prefix, image_width=0, image_height=0, overwrite=False, random_filename=False):
         def map_filename(filename):
             prefix_len = len(os.path.basename(filename_prefix))
             prefix = filename[:prefix_len + 1]
@@ -134,17 +140,26 @@ class S3:
         if not self.does_folder_exist(full_output_folder_s3):
             self.create_folder(full_output_folder_s3)
 
-        try:
-            # Continue with the counter calculation
-            files = self.get_files(full_output_folder_s3)
-            counter = max(
-                filter(
-                    lambda a: a[1][:-1] == filename and a[1][-1] == "_",
-                    map(map_filename, files)
-                )
-            )[0] + 1
-        except (ValueError, KeyError):
+        if random_filename:
+            chars = string.ascii_letters + string.digits
+            random_string = ''.join(random.choices(chars, k=8))
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{random_string}_{timestamp}"
             counter = 1
+        elif overwrite:
+            counter = 1
+        else:
+            try:
+                # Continue with the counter calculation
+                files = self.get_files(full_output_folder_s3)
+                counter = max(
+                    filter(
+                        lambda a: a[1][:-1] == filename and a[1][-1] == "_",
+                        map(map_filename, files)
+                    )
+                )[0] + 1
+            except (ValueError, KeyError):
+                counter = 1
         
         return full_output_folder_s3, filename, counter, subfolder, filename_prefix
 
